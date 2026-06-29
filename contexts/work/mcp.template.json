@@ -1,0 +1,12 @@
+{
+  "_comment": "工作情境 MCP 白名單 — 只列公司工具，複製為 mcp.json 並填入真實設定",
+  "mcpServers": {
+    "gitlab": {
+      "command": "mcp-gitlab",
+      "args": ["--url", "https://gitlab.your-company.com"],
+      "env": {
+        "GITLAB_TOKEN": "${GITLAB_TOKEN}"
+      }
+    }
+  }
+}

@@ -1,0 +1,39 @@
+# ═══════════════════════════════════════════════════════
+# second-brain .gitignore
+# 策略：骨架與範本進 Git，私密內容留本機 + Google Drive 同步
+# ═══════════════════════════════════════════════════════
+
+# ── 個人資料（含私人背景）─────────────────────────────
+/core/profile.md
+
+# ── 情境實際內容（含帳號/服務/個人資訊）──────────────
+/contexts/work/context.md
+/contexts/work/mcp.json
+/contexts/life/context.md
+/contexts/life/mcp.json
+
+# ── 研究情境（若有）──────────────────────────────────
+/contexts/research/
+
+# ── 工作專案（含公司 IP）─────────────────────────────
+/projects/nagra-tntsat.md
+/projects/android-aosp.md
+# 新增工作專案時，在這裡補上檔名
+
+# ── 機密（API keys / tokens）─────────────────────────
+/secrets/*
+!/secrets/.template
+
+# ── Secure Mode 旗標（本機狀態，不需版控）────────────
+/.secure-mode
+
+# ── 知識庫（第二階段，含個人知識）───────────────────
+/wiki/
+/raw/
+
+# ── 系統 / 工具 ─────────────────────────────────────
+.DS_Store
+*.swp
+*~
+.obsidian/
+Thumbs.db
