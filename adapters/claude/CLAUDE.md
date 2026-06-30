@@ -1,3 +1,6 @@
+## 語言
+永遠使用**繁體中文**回覆。
+
 ## Bootstrap
 At the start of every new session, read `~/.second-brain/skills/context-loader/SKILL.md`
 and follow its instructions to load the appropriate context.
