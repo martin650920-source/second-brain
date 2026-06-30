@@ -99,6 +99,45 @@ Add-Content .gitignore "/projects/新專案名.md"
 | `contexts/*/rules.md` | `projects/<工作專案>.md` |
 | `projects/_template.md` | `secrets/.env` |
 
+## Claude Code 設定（`~/.claude/settings.json`）
+
+### SessionStart Hook
+
+每次 session 開始時自動執行：
+1. **SSH 環境**：`git pull ~/.second-brain`（同步最新 second-brain）
+2. **所有環境**：注入指令讓 Claude 執行 `/context-loader`
+
+Hook 存放於各機器的 `~/.claude/settings.json`，**不進 Git**（屬於本機設定）。
+
+### SSH 主機初始設定
+
+SSH 主機完成 `setup-ssh.sh` 後，貼上以下指令設定 hook：
+
+```bash
+python3 << 'PYEOF'
+import json, os
+
+settings_path = os.path.expanduser("~/.claude/settings.json")
+hook_cmd = """if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then git -C "$HOME/.second-brain" pull --quiet 2>/dev/null || true; fi; echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"IMPORTANT: 立即執行 /context-loader skill 以載入 second-brain context（profile、情境層、專案層）。請在回應使用者之前先完成此步驟。"}}'"""
+
+os.makedirs(os.path.expanduser("~/.claude"), exist_ok=True)
+
+settings = {}
+if os.path.exists(settings_path):
+    with open(settings_path, encoding="utf-8") as f:
+        settings = json.load(f)
+
+settings.setdefault("hooks", {})["SessionStart"] = [
+    {"hooks": [{"type": "command", "command": hook_cmd, "shell": "bash"}]}
+]
+
+with open(settings_path, "w", encoding="utf-8") as f:
+    json.dump(settings, f, indent=2, ensure_ascii=False)
+
+print("Done:", settings_path)
+PYEOF
+```
+
 ## Secure Mode
 
 ```powershell
