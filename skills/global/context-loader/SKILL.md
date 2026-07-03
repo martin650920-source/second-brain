@@ -72,25 +72,40 @@ done
 
 若無缺漏 → 靜默跳過，不輸出任何訊息。
 
-## Step 3：自動偵測專案
+## Step 3：選擇專案
 
-掃描 cwd 的特徵檔案：
+列出 `<BASE>/projects/` 底下所有 `.md` 檔（排除 `_template.md`），組成選單：
 
-| 特徵                                         | 專案             |
-| ------------------------------------------- | -------------- |
-| `CMakeLists.txt` + `include/mt_unf_*.h`     | `Sym6-TNTSAT`  |
-| `robot/` + `*.robot`                        | `Sym6-TNTSAT`  |
-| `project.yml`（Ceedling）                     | `Sym6-TNTSAT`  |
-| `Android.bp` 或路徑含 `aosp`/`android`/`1319D`  | `android-aosp` |
-| LINUX DDK                                   | Sym6_SGT       |
-|                                              |                |
+1. **New**（建立新專案）
+2. <既有專案 1>
+3. <既有專案 2>
+...（依實際檔案數量列出，一個檔名一行）
+N. **Skip**（跳過，不載入專案層）
 
-若偵測到 → 確認：
+跳出選單讓使用者選擇（若當前工具有互動選擇元件如 AskUserQuestion，優先用該元件呈現；否則以文字列出編號，請使用者輸入數字）。
+
+> 舊版用特徵檔案（CMakeLists.txt / Android.bp 等）自動偵測，改名或新增專案時容易忘記同步更新這份表格
+> 導致誤判（本 session 已修過兩次）。改成手動選單後不再需要維護偵測規則。
+
+### 選到 New
+
+1. 詢問使用者：「新專案名稱？」，取得 `<name>`
+2. 觸發 `/init-project-md` skill 建立本體與 symlink，**用使用者輸入的 `<name>` 取代該 skill Step 2 的自動衍生名稱**，其餘步驟不變（分析 codebase、寫入 `<BASE>/projects/<name>.md`、建立 symlink）
+3. 建立完成後視同選定專案 `<name>`，繼續 Step 4（此時 cwd 已有 symlink，Step 5 會靜默略過）
+
+### 選到既有專案 `<name>`
+
+視同選定專案 `<name>`，繼續 Step 4。
+
+### 選到 Skip
+
+不載入專案層，提示：
 ```
-偵測到專案：nagra-tntsat，載入？[Y/n]
+已跳過本次專案層載入。之後如果要幫這個目錄接上 ai-workspace：
+- 還沒有本體 → 在這個目錄說「建立 CLAUDE.md」或輸入 /init-project-md，會自動建立本體並連結
+- 本體已存在於 <BASE>/projects/ → 到 ai-workspace 目錄執行：
+    bash setup/sync.sh link-project <這個目錄的路徑> <projects/ 下對應檔名（不含 .md）>
 ```
-
-若未偵測到 → 列出 `<BASE>/projects/` 的 `.md` 檔（排除 `_template.md`）讓 user 選，或輸入 0 跳過。
 
 ## Step 4：載入專案層
 
@@ -104,11 +119,10 @@ done
 
 檢查 `<cwd>/CLAUDE.md` 是否存在：
 
-- 若**不存在** → 提示：
-  ```
-  此目錄尚未建立 CLAUDE.md，要現在建立嗎？[Y/n]
-  ```
-  若 Y → 觸發 `/init-project-md` skill。
+- 若**不存在**：
+  - 若 Step 3 已選定**既有專案** `<name>` → 直接建立 symlink（等同 `sync.sh link-project <cwd> <name>`），**不要**觸發 `/init-project-md`（那是重新掃描建全新本體，不是連結既有本體，會誤蓋）
+  - 若 Step 3 選的是 **New** → 此時應該已有 symlink（Step 3 已建立），略過
+  - 若 Step 3 選的是 **Skip** → 不重複詢問，Step 3 的 Skip 提示已經講過後續怎麼做
 
 - 若存在但**不是 symlink**（真實檔案）→ 靜默略過（使用者自行管理）。
 
