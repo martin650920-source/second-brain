@@ -29,7 +29,9 @@ uname -r | grep -qi microsoft && echo WSL || echo SSH
 
 ## Step 2：衍生專案名稱
 
-取 cwd 的最後一段目錄名，依規則轉換：
+**若呼叫方已指定名稱**（例如 context-loader 的「Link project → New」流程已經問過使用者、取得了自訂的專案名稱）→ **直接使用該名稱作為 `<name>`，跳過以下 cwd 衍生邏輯，直接進入 Step 3**。
+
+**否則**（獨立觸發此 skill，沒有外部提供名稱），取 cwd 的最後一段目錄名，依規則轉換：
 - 全部小寫
 - 空格、底線 `_` 換成連字號 `-`
 
@@ -124,6 +126,9 @@ ln -sf "$target" "$link"
 
 若此專案含公司資訊，提示：
 ```
-※ 若此 CLAUDE.md 含公司 IP，請加入 gitignore 避免上傳：
-   echo "/projects/<name>.md" >> ~/.ai-workspace/.gitignore
+※ 提醒：ai-workspace 目前是 Public repo，projects/ 底下的檔案預設都會進 git 版控，
+   沒有自動的機密保護機制（.gitignore 白名單機制已於 2026-07-02 移除，因為專案改名/
+   新增時容易忘記同步維護，反而造成外流）。
+   若這份 CLAUDE.md 含公司 IP，commit/push 前請自行確認內容是否要公開，
+   或考慮把 ai-workspace repo 整個改成 Private。
 ```

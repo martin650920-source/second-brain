@@ -80,23 +80,37 @@ pwsh -ExecutionPolicy Bypass -File setup\setup-windows.ps1
 
 ## 新增工作專案
 
-```powershell
-# 1. 複製範本
-Copy-Item projects\_template.md projects\新專案名.md
-
-# 2. 填入內容後，加入 .gitignore（避免公司 IP 外流）
-Add-Content .gitignore "/projects/新專案名.md"
-
-# 3. 在 skills/global/context-loader/SKILL.md 的 Step 3 偵測表加入 Marker Files
+**推薦：在專案目錄開 Claude Code，走互動選單**（不用手動編輯任何檔案）：
 ```
+cd <專案目錄>
+claude
+# session 開始（或手動說「載入 context」）→ 跳出選單：
+#   1. Link project → New → 輸入新專案名稱
+# 會自動在 ai-workspace/projects/ 建本體、建 symlink
+```
+
+**手動方式**（本體已經先寫好時）：
+```bash
+# 本體放到 ai-workspace/projects/<name>.md 後
+bash ~/.ai-workspace/setup/sync.sh link-project <專案路徑> <name>
+```
+
+> 舊版需要手動編輯 `.gitignore` 加專案代號、編輯 `context-loader/SKILL.md` 的偵測表加 Marker Files
+> 兩個步驟，已經都不需要了：`.gitignore` 白名單機制已移除（見下方公私分離說明），
+> `context-loader` Step 3 改用互動選單直接讀 `projects/` 目錄現有檔案，不再需要偵測表。
 
 ## 公私分離（Git 管理規則）
 
 | 進 Git（公開骨架） | 不進 Git（本機 + Drive 同步） |
 |---|---|
 | `adapters/`, `skills/`, `setup/` | `rules/global.local.md`（若有） |
-| `rules/global.md` | `projects/<工作專案>.md` |
-| `projects/_template.md` | `mcp/.env`（實際憑證，放 `~/.mcp.env`） |
+| `rules/global.md` | `mcp/.env`（實際憑證，放 `~/.mcp.env`） |
+| `projects/_template.md` | |
+
+> **2026-07-02 起變更：** `projects/<工作專案>.md`（含各工作專案的 CLAUDE.md）**現在預設會進 Git**。
+> 原本的白名單 `.gitignore` 機制因專案改名/新增時容易忘記同步維護，已被證實會導致機密檔案外流
+> （曾發生過一次，已用 `git filter-repo` 清除歷史修復），因此改為「不設限制，機密性由使用者
+> commit/push 前自行把關」。`ai-workspace` repo 目前是 **Public**，這點務必留意。
 
 ## Claude Code 設定（`~/.claude/settings.json`）
 

@@ -4,8 +4,15 @@
 # 用法:
 #   sync.sh                                   pull + symlink 校驗
 #   sync.sh push                              pull（防覆蓋）→ commit → push
-#   sync.sh link-project <path> <name>        建立/更新 projects/<name>.md 對應到 <path>/CLAUDE.md 的 symlink
+#   sync.sh link-project <path> <name> [--backup|--force]
+#                                              建立/更新 projects/<name>.md 對應到 <path>/CLAUDE.md 的 symlink
+#                                              （若 <path>/CLAUDE.md 已是真實檔案，預設拒絕覆蓋，
+#                                               需明確加 --backup 備份後取代，或 --force 直接覆蓋）
 #   sync.sh link-skill <project> <skill>      建立 skills/projects/<project>/<skill>/ symlink 到 <path>/.claude/skills/<skill>/
+#   sync.sh remove-project <name> [--paths=projects,rules,mem,skills] [--unlink-cwd]
+#                                              清除 ai-workspace 內某專案的殘留檔案（不互動，由呼叫方先決定好
+#                                              要刪哪些類別；預設四類全刪。--unlink-cwd 會順便清掉「目前所在
+#                                              目錄」若剛好連結到這個專案的 CLAUDE.md / CLAUDE.local.md）
 set -euo pipefail
 
 AI_WORKSPACE="${AI_WORKSPACE:-$HOME/.ai-workspace}"
@@ -125,8 +132,9 @@ do_push() {
 
 # ── 子指令：link-project ───────────────────────────────
 do_link_project() {
-    local project_path="${1:?用法: sync.sh link-project <path> <name>}"
-    local name="${2:?用法: sync.sh link-project <path> <name>}"
+    local project_path="${1:?用法: sync.sh link-project <path> <name> [--backup|--force]}"
+    local name="${2:?用法: sync.sh link-project <path> <name> [--backup|--force]}"
+    local mode="${3:-}"
 
     local body="$AI_WORKSPACE/projects/$name.md"
     if [ ! -f "$body" ]; then
@@ -134,8 +142,27 @@ do_link_project() {
         exit 1
     fi
 
-    ln -sf "$body" "$project_path/CLAUDE.md"
-    ok "已連結: $project_path/CLAUDE.md -> $body"
+    local target_link="$project_path/CLAUDE.md"
+    if [ -e "$target_link" ] && [ ! -L "$target_link" ]; then
+        case "$mode" in
+            --backup)
+                local bak="${target_link}.bak-$(date +%Y%m%d-%H%M%S)"
+                mv "$target_link" "$bak"
+                ok "已備份: $bak"
+                ;;
+            --force)
+                warn "直接覆蓋（未備份）: $target_link"
+                ;;
+            *)
+                err "$target_link 是真實檔案（非 symlink），內容不會自動保留，為避免誤刪不會自動覆蓋。"
+                err "確認內容可以捨棄後，重跑並加上 --backup（備份後取代）或 --force（直接覆蓋）"
+                exit 1
+                ;;
+        esac
+    fi
+
+    ln -sf "$body" "$target_link"
+    ok "已連結: $target_link -> $body"
 
     # CLAUDE.local.md：純 import stub，指向 rules/mem
     local local_md="$project_path/CLAUDE.local.md"
@@ -152,6 +179,61 @@ do_link_project() {
     else
         info "$local_md 已存在，未覆寫（手動確認 import 行是否齊全）"
     fi
+}
+
+# ── 子指令：remove-project ──────────────────────────────
+# 不互動：由呼叫方（人工或 AI agent 先在對話裡問過使用者）決定好要刪哪些類別，
+# 用旗標指定，避免腳本內建 read -rp 在非 TTY（例如 AI agent 直接呼叫）環境卡住。
+do_remove_project() {
+    local name="${1:?用法: sync.sh remove-project <name> [--paths=projects,rules,mem,skills] [--unlink-cwd]}"
+    shift
+
+    local paths_arg="projects,rules,mem,skills"
+    local unlink_cwd=0
+    for arg in "$@"; do
+        case "$arg" in
+            --paths=*)    paths_arg="${arg#--paths=}" ;;
+            --unlink-cwd) unlink_cwd=1 ;;
+            *) err "未知參數: $arg"; exit 1 ;;
+        esac
+    done
+
+    declare -A path_map=(
+        [projects]="$AI_WORKSPACE/projects/$name.md"
+        [rules]="$AI_WORKSPACE/rules/projects/$name"
+        [mem]="$AI_WORKSPACE/mem/projects/$name.md"
+        [skills]="$AI_WORKSPACE/skills/projects/$name"
+    )
+
+    IFS=',' read -ra want <<< "$paths_arg"
+    for key in "${want[@]}"; do
+        local p="${path_map[$key]:-}"
+        if [ -z "$p" ]; then
+            err "未知的 --paths 項目: $key（可用: projects,rules,mem,skills）"
+            exit 1
+        fi
+        if [ -e "$p" ]; then
+            rm -rf "$p"
+            ok "已刪除: $p"
+        else
+            info "不存在，略過: $p"
+        fi
+    done
+
+    if [ "$unlink_cwd" -eq 1 ]; then
+        local cwd_link="$PWD/CLAUDE.md"
+        if [ -L "$cwd_link" ] && [ "$(readlink "$cwd_link")" = "$AI_WORKSPACE/projects/$name.md" ]; then
+            rm -f "$cwd_link" "$PWD/CLAUDE.local.md"
+            ok "已移除本目錄連結: $cwd_link（含 CLAUDE.local.md，若存在）"
+        else
+            info "目前目錄的 CLAUDE.md 未連結到 $name，略過 --unlink-cwd"
+        fi
+    fi
+
+    echo ""
+    ok "清理完成，記得執行 sync.sh push 同步給其他主機。"
+    warn "其他主機上（若有連結過）的 CLAUDE.md / CLAUDE.local.md 不在 ai-workspace 管轄範圍，"
+    warn "不會自動清除，需要你自行到那些主機上手動刪除。"
 }
 
 # ── 子指令：link-skill ─────────────────────────────────
@@ -172,13 +254,14 @@ do_link_skill() {
 }
 
 case "$cmd" in
-    sync)          do_sync ;;
-    push)          do_push ;;
-    link-project)  shift; do_link_project "$@" ;;
-    link-skill)    shift; do_link_skill "$@" ;;
+    sync)            do_sync ;;
+    push)            do_push ;;
+    link-project)    shift; do_link_project "$@" ;;
+    link-skill)      shift; do_link_skill "$@" ;;
+    remove-project)  shift; do_remove_project "$@" ;;
     *)
         err "未知指令: $cmd"
-        echo "用法: sync.sh [sync|push|link-project <path> <name>|link-skill <project> <skill>]"
+        echo "用法: sync.sh [sync|push|link-project <path> <name> [--backup|--force]|link-skill <project> <skill>|remove-project <name> [--paths=...] [--unlink-cwd]]"
         exit 1
         ;;
 esac
