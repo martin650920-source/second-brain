@@ -1,26 +1,26 @@
-# Global Rule — [Your Name] 的全域規則
+# Global Rule — Martin 的全域規則
 
 所有專案都適用的行為準則。載入優先序：**專案層 > 全域層**（見「衝突解決原則」）。
 
 ## 工作環境
 
-- OS: [e.g. Windows 10 + WSL2 / macOS / Linux]
-- Shell: [bash / zsh]
-- 版本控制: [Git + GitHub / GitLab，commit message 語言]
-- 編輯器: [VSCode / Neovim / ...]
-- Build: [Make / CMake / ...]
-- 測試: [pytest / Ceedling / Jest / ...]
+- OS: Windows（桌機 + 筆電，皆為 Windows + WSL2）；另有 SSH 遠端 Linux 主機
+- Shell: bash（Windows 用 Git Bash；WSL2 / SSH 用系統內建 bash）
+- 版本控制: Git + GitHub（帳號 `martin650920-source`），commit message 用 Conventional Commits 前綴（`feat` / `fix` / `docs` 等，英文）+ 繁體中文說明
+- 編輯器: VS Code（大部分情況）
+- Build: 無固定 build 流程 —— `ai-workspace` 本身是文件/腳本集合；各工作專案各自的 build 方式記載在對應的 `projects/<name>.md`
+- 測試: 待確認
 
 ## 偏好與慣例
 
-- 命名: [snake_case / camelCase / ...]
-- [其他習慣]
+- 命名: 檔案/資料夾用 kebab-case（例：`setup-windows.ps1`、`google-drive-sync.md`）
+- 其他習慣待補充
 
 ## AI 回答偏好
 
-- 回答語言: [繁體中文 / English / ...]
-- 回答風格: [條列式 / 詳細說明 / ...]
-- 其他: [先給推薦方案 / 省略客套語 / ...]
+- 回答語言: 繁體中文（永遠）
+- 回答風格: 先查證再回答，避免臆測 —— 動手修改前先讀實際檔案 / git 狀態確認現況；給建議時先講清楚理由再動手
+- 其他: 待補充（例如是否要先給推薦方案、要不要省略客套語）
 
 ## 衝突解決原則
 
@@ -39,14 +39,6 @@
 
 - global 說「繁體中文」，project 沒有特別指定 → 套用「繁體中文」
 - global 說「條列式回答」，project 說「commit message 用英文」→ commit message 用英文，其他回答仍條列式繁體中文
-
-## 每日筆記操作慣例
-
-當 user 說「加到我每日筆記」：
-- 找到 `D:\GOOGLE_DRIVE_SYNC\daily_note\<今日日期>.md`，直接寫入
-- 待辦/TODO → 加到 `# Day planner` 區塊末尾，格式：`- [ ] <內容>`
-- 若 `# Day planner` 不存在，先在檔案末尾建立該區塊再加入
-- 若今日檔案不存在，建立新檔並加入 `# Day planner` 區塊
 
 ## Rule 建立規則
 
@@ -67,8 +59,9 @@
 - 判斷範圍：
   - 明確指名專案或含專案特有細節 → `mem/projects/<專案>.md`
   - 泛用、跨專案都適用 → `mem/global.md`
-  - 無法判斷 → 預設先寫入對應專案的 mem（較保守，不污染其他專案），並告知使用者存放位置
+  - 無法判斷 → 預設先寫入對應專案的 mem（較保守，不污染其他專案）
 - 寫入格式：`## YYYY-MM-DD` 標題 + 條列，追加在檔案最後，不覆寫舊內容
+- **寫入完成後，不論屬於上面哪一種分類結果，一律要回報實際寫入的完整檔案路徑與層級判斷理由**，不能只有「無法判斷」的情況才講。方便使用者用 `git status` / `git diff` 或直接打開檔案核對，不必只憑 AI 自述。
 
 ## Skill 建立規則
 

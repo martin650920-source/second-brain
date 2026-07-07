@@ -19,10 +19,6 @@ ai-workspace/
 │   └── projects/<name>.md
 ├── projects/                 # 專案事實層（CLAUDE.md 本體，/init 產生，自動偵測）
 │   └── _template.md
-├── mcp/
-│   ├── settings.json         # MCP 架構設定（引用環境變數，不含真實憑證）
-│   ├── .env.example          # 憑證欄位範本
-│   └── manifest.md           # 各主機 MCP 安裝狀態清單
 ├── adapters/                 # AI 工具轉換層（盡量薄，只放 bootstrap 指令）
 │   ├── claude/CLAUDE.md
 │   ├── gemini/GEMINI.md
@@ -94,24 +90,22 @@ context-loader 會偵測到 `CLAUDE.md` 不存在，提示執行 `/init-project-
 
 ## 新增工作專案
 
-1. 複製 `projects/_template.md` → `projects/<專案名>.md`
-2. 填入專案架構、指令、術語
-3. 在 `skills/global/context-loader/SKILL.md` 的偵測表加入 Marker Files
-4. **在 `.gitignore` 加入 `/projects/<專案名>.md`**（避免公司 IP 外流）
+推薦在專案目錄開 Claude Code，走 context-loader 互動選單自動建立本體 + symlink（見 `docs/快速上手指南.md`）。舊版需要手動編輯 `.gitignore` 加專案代號、編輯 `context-loader/SKILL.md` 偵測表兩個步驟，皆已移除，不再需要。
 
-## 公私分離
+## Git 版控範圍
 
-| 進 Git（公開骨架） | 不進 Git（本機 + Drive 同步 / 家目錄） |
-|---|---|
-| `adapters/`, `skills/`, `setup/` | `rules/global.local.md`（若日後拆分真實個人值） |
-| `rules/global.md`, `rules/projects/` | `projects/<工作專案>.md` |
-| `mcp/settings.json`, `mcp/.env.example` | `~/.mcp.env`（真實憑證，放使用者家目錄，不在此 repo 內） |
-| `projects/_template.md` | |
+不做公私分離、不維護白名單。`rules/`、`mem/`、`projects/`（含各工作專案 CLAUDE.md）、`skills/`、`adapters/`、`setup/` 等**全部進 Git**，任何主機新增的內容 `sync.sh push` 之後，其他主機/平台都能同步拿到同一份。
+
+> **沿革：** 最初曾規劃「公開骨架 vs 私密內容（`rules/global.local.md`、`projects/<工作專案>.md`）」的白名單機制，因專案改名/新增時容易忘記同步維護，2026-07-02 已證實造成一次機密外流（已用 `git filter-repo` 清除歷史修復）。2026-07-03 進一步確認：不再區分公私，全部進 Git，機密性由使用者 commit/push 前自行把關。`ai-workspace` repo 目前是 **Public**，這點務必留意。
+
+## MCP 不由 ai-workspace 管理
+
+MCP server 的安裝/設定/憑證**各主機各自獨立處理**，用 Claude Code 原生的 `claude mcp add ...` 即可，不透過 `ai-workspace` 集中管理或同步。哪台主機需要哪個 MCP，就在那台上裝一次；`ai-workspace` 不記錄安裝清單、不同步架構設定或憑證。
+
+> **沿革：** 2026-07-02 設計階段曾規劃 `mcp/settings.json`（架構設定）+ `mcp/.env.example`（憑證範本）+ `mcp/manifest.md`（安裝清單，號稱由 `sync.sh` 自動偵測/自動 push）三件套集中管理機制，但從未真正實作（`sync.sh` 從頭到尾沒有任何 MCP 相關程式碼）。2026-07-03 確認：不需要統一管理，直接維持 Claude Code 原生的各主機獨立模式，相關規劃文件與範本檔案已移除。
 
 ## TODO（已知未解決、留給未來的自己）
 
-- `rules/global.md` 的真實個人值（姓名、公司環境細節等）要怎麼跟公開骨架分層，目前尚未設計（可能是 `rules/global.local.md` + gitignore，仿照這裡沒有的舊 `core/profile.md` 模式）
-- `mem/` 底下的檔案是否要進 git 版控，還是要比照工作專案排除，待累積內容後再決定
 - `sync.sh` 目前只有 bash 版本（WSL/SSH），Windows 尚無對應的 `sync.ps1`
 - 情境層（work/life + Secure Mode MCP 白名單）已在這次重構整套移除，日後有需要再重新設計
 

@@ -35,12 +35,8 @@ All builds happen from `ddk/` (the SDK root, referred to as `SDK_DIR` throughout
    name, default `symphony6.cfg`), and toolchain/ccache flags:
    ```bash
    cd ddk
-   source envsetup [<config>.cfg] [ccache]
+   source envsetup symphony6_tee.cfg
    ```
-   Valid `<config>.cfg` values are any file under `product/configs/*.cfg`, e.g.:
-   `symphony6_tee.cfg`, `symphony6_tee_gst.cfg`, `symphony6_tee_nor.cfg`, `symphony6_tee_pip.cfg`,
-   `symphony6_tee_chrome.cfg`, `symphony6_tee_release.cfg`,
-   `symphony6_32user_32kernel_tee.cfg` (and `_gst` / `_loader` variants).
 
 2. **Configure** — Kconfig-based, top menu defined in `ddk/Kconfig` (→ `build/script/Kconfig-top`),
    selecting chip (`symphony1/2/4/6`, `aria`), arch (mips/arm/aarch64), board (`MFRS`), DDR size, etc.
